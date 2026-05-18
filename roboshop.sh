@@ -16,7 +16,7 @@ do
         RECORD_NAME="$instance.$site_name"
     else
         IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
-        RECORD_NAME="$site_name"
+        RECORD_NAME="$instance.$site_name"
     fi
 
     echo "$instance and its IP address is $IP"
