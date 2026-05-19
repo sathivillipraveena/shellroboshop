@@ -8,21 +8,19 @@ site_name=roboticgear.shop
 
 for instance in $@
 do
-    INSTANCE_ID=$(aws ec2 run-instances --image-id $ami_id --instance-type t3.micro --security-group-ids $sg_id --subnet-id $sub_id --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$instance}]" --query "Instances[0].InstanceId" --output text)
-
-    if [ "${instance}" != "frontend" ]
+    INSTANCE_ID=$(aws ec2 run-instances --image-id ami-0220d79f3f480ecf5 --instance-type t3.micro --security-group-ids sg-0cdb841294c052660 --tag-specifications "ResourceType=instance,Tags=[{Key=Name, Value=$instance}]" --query "Instances[0].InstanceId" --output text)
+    if [ $instance != "frontend" ]
     then
         IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
-        RECORD_NAME="$instance.$site_name"
+        RECORD_NAME="$instance.$DOMAIN_NAME"
     else
         IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
-        RECORD_NAME="$instance.$site_name"
+        RECORD_NAME="$DOMAIN_NAME"
     fi
-
-    echo "$instance and its IP address is $IP"
+    echo "$instance IP address: $IP"
 
     aws route53 change-resource-record-sets \
-    --hosted-zone-id $zone_id \
+    --hosted-zone-id $ZONE_ID \
     --change-batch '
     {
         "Comment": "Creating or Updating a record set for cognito endpoint"
