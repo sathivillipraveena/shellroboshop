@@ -1,4 +1,5 @@
 #!/bin/bash
+USER_ID=$(id -u)
 r='\e[31m'
 g='\e[32m'
 y='\e[33m'
@@ -6,6 +7,11 @@ Log_Folder=/var/log/shellroboshop
 script_name=$(echo $0 | cut -d "." -f1)
 log_file="$log_Folder/$script_name.log"
 mkdir -p $Log_Folder
+if [ USER_ID -ne 0 ]
+then
+    echo " ${r} ERROR: user is not super user" | tee -a $log_file
+fi
+
 validate(){
     if [ $1 -eq 0 ]
     then
