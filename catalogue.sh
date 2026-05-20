@@ -34,12 +34,15 @@ validate(){
         exit 1
     fi
 }
-dnf module disable nodejs -y
+dnf module disable nodejs -y &>>$log_file
 validate $?,"nodejs disabled"
-dnf module enable nodejs:20 -y
+
+dnf module enable nodejs:20 -y &>>$log_file
 validate $?,"nodejs enabled"
-dnf install nodejs -y
+
+dnf install nodejs -y &>>$log_file
 validate $?,"installed nodejs"
+
 id roboshop
 if [ $? -ne 0 ]
 then
@@ -48,21 +51,42 @@ then
 else
     echo -e "roboshop user exist"
 fi
+
 mkdir -p /app 
 
-curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip 
+curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip &>>$log_file
 
 unzip /tmp/catalogue.zip
+
+rm -rf /app/*
+
 cd /app 
-npm install 
+
+npm install &>>$log_file
 validate $?,"nodejs build tool installed"
+
 cp catalogue.service /etc/systemd/system/catalogue.service
 validate $?,"copied catalouge service file"
 
-systemctl daemon-reload
+systemctl daemon-reload &>>$log_file
 validate $?," daemon reloded"
 
-systemctl enable catalogue 
+systemctl enable catalogue &>>$log_file
 validate $?,"enabled catalouge"
-systemctl start catalogue
+
+systemctl start catalogue &>>$log_file
 validate $?,"catalouge started"
+
+cp $SCRIPT_DIR/mongo.repo  /etc/yum.repos.d/mongo.repo
+
+dnf install mongodb-mongosh -y &>>$log_file
+validate? "Installing MongoDB Client"
+
+STATUS=$(mongosh --host mongodb.daws84s.site --eval 'db.getMongo().getDBNames().indexOf("catalogue")')
+if [ $STATUS -lt 0 ]
+then
+    mongosh --host mongodb.daws84s.site </app/db/master-data.js &>>$LOG_FILE
+    validate? "Loading data into MongoDB"
+else
+    echo -e "Data is already loaded ... $y skipping"
+fi
