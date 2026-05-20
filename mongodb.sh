@@ -4,7 +4,7 @@ r='\e[31m'
 g='\e[32m'
 y='\e[33m'
 
-start_time=$(($date +%s))
+start_time=$($date +%s)
 Log_Folder=/var/log/shellroboshop
 
 script_name=$(echo $0 | cut -d "." -f1)
