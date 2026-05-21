@@ -3,7 +3,8 @@
 USER_ID=$(id -u)
 r="\e[31m"   
 g="\e[32m"   
-y="\e[33m"   
+y="\e[33m" 
+n="\e[0m"  
 
 start_time=$(date +%s) 
 
@@ -28,26 +29,26 @@ fi
 validate(){
     if [ $1 -eq 0 ]
     then
-        echo -e "$2 is $g successful" | tee -a $log_file
+        echo -e "$2 is $g successful $n" | tee -a $log_file
     else
-        echo -e "$2 is $r failure" | tee -a $log_file
+        echo -e "$2 is $r failure $n" | tee -a $log_file
         exit 1
     fi
 }
 dnf module disable nodejs -y &>>$log_file
-validate $?,"nodejs disabled"
+validate $? "nodejs disabled"
 
 dnf module enable nodejs:20 -y &>>$log_file
-validate $?,"nodejs enabled"
+validate $? "nodejs enabled"
 
 dnf install nodejs -y &>>$log_file
-validate $?,"installed nodejs"
+validate $? "installed nodejs"
 
 id roboshop
 if [ $? -ne 0 ]
 then
     useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop
-    validate $?,"Creating roboshop system user"
+    validate $? "Creating roboshop system user"
 else
     echo -e "roboshop user exist"
 fi
@@ -63,30 +64,30 @@ rm -rf /app/*
 cd /app 
 
 npm install &>>$log_file
-validate $?,"nodejs build tool installed"
+validate $? "nodejs build tool installed"
 
 cp catalogue.service /etc/systemd/system/catalogue.service
-validate $?,"copied catalouge service file"
+validate $? "copied catalouge service file"
 
 systemctl daemon-reload &>>$log_file
-validate $?," daemon reloded"
+validate $? " daemon reloded"
 
 systemctl enable catalogue &>>$log_file
-validate $?,"enabled catalouge"
+validate $? "enabled catalouge"
 
 systemctl start catalogue &>>$log_file
-validate $?,"catalouge started"
+validate $? "catalouge started"
 
 cp $SCRIPT_DIR/mongo.repo  /etc/yum.repos.d/mongo.repo
 
 dnf install mongodb-mongosh -y &>>$log_file
-validate? "Installing MongoDB Client"
+validate $? "Installing MongoDB Client"
 
 STATUS=$(mongosh --host mongodb.daws84s.site --eval 'db.getMongo().getDBNames().indexOf("catalogue")')
 if [ $STATUS -lt 0 ]
 then
-    mongosh --host mongodb.daws84s.site </app/db/master-data.js &>>$LOG_FILE
-    validate? "Loading data into MongoDB"
+    mongosh --host mongodb.daws84s.site </app/db/master-data.js &>>$log_file
+    validate $? "Loading data into MongoDB"
 else
-    echo -e "Data is already loaded ... $y skipping"
+    echo -e "Data is already loaded ... $y skipping $n"
 fi
