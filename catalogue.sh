@@ -89,5 +89,5 @@ then
     mongosh --host mongodb.daws84s.site </app/db/master-data.js &>>$log_file
     validate $? "Loading data into MongoDB"
 else
-    echo -e "Data is already loaded ... $y skipping $n"
+    echo -e "Data is already loaded ... $y skipping $n "
 fi
