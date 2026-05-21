@@ -66,7 +66,7 @@ unzip /tmp/catalogue.zip &>>$log_file
 npm install &>>$log_file
 validate $? "nodejs build tool installed"
 
-cp catalogue.service /etc/systemd/system/catalogue.service
+cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service
 validate $? "copied catalouge service file"
 
 systemctl daemon-reload &>>$log_file
