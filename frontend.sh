@@ -59,7 +59,7 @@ cd /usr/share/nginx/html
 
 unzip /tmp/frontend.zip
 validate $? "unzipped frontend"
-cp SCRIPT_DIR/nginx.conf /etc/nginx/nginx.conf
+cp $SCRIPT_DIR/nginx.conf /etc/nginx/nginx.conf
 
 systemctl restart nginx 
 validate $? "restarting nginx"
