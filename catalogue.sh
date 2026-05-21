@@ -56,12 +56,12 @@ fi
 mkdir -p /app 
 
 curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip &>>$log_file
-
-unzip /tmp/catalogue.zip
+validate $? "downloading catalouge file"
 
 rm -rf /app/*
 
 cd /app 
+unzip /tmp/catalogue.zip &>>$log_file
 
 npm install &>>$log_file
 validate $? "nodejs build tool installed"
@@ -79,6 +79,7 @@ systemctl start catalogue &>>$log_file
 validate $? "catalouge started"
 
 cp $SCRIPT_DIR/mongo.repo  /etc/yum.repos.d/mongo.repo
+validate $? "mongo.repo is copied"
 
 dnf install mongodb-mongosh -y &>>$log_file
 validate $? "Installing MongoDB Client"
