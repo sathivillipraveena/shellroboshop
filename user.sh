@@ -29,11 +29,11 @@ VALIDATE(){
         exit 1
     fi
 }
-dnf module disable nodejs -y
+dnf module disable nodejs -y &>>LOG_FILE
 VALIDATE $? "nodejs disabled"
-dnf module enable nodejs:20 -y
+dnf module enable nodejs:20 -y &>>LOG_FILE
 VALIDATE $? "nodejs20 enabled"
-dnf install nodejs -y
+dnf install nodejs -y &>>LOG_FILE
 VALIDATE $? "nodejs installed"
 id roboshop
 if [ $? -ne 0 ]
@@ -45,19 +45,22 @@ else
 fi
 mkdir /app 
 VALIDATE $? "directory for app is created"
-curl -L -o /tmp/user.zip https://roboshop-artifacts.s3.amazonaws.com/user-v3.zip 
+curl -L -o /tmp/user.zip https://roboshop-artifacts.s3.amazonaws.com/user-v3.zip &>>LOG_FILE
 VALIDATE $? "downloaded directory into tmp "
  
-unzip /tmp/user.zip
+unzip /tmp/user.zip 
 VALIDATE $? "unzipped"
 cd /app
-npm install 
+npm install &>>LOG_FILE
 VALIDATE $? "nodejs built module is install "
+
 cp $SCRIPT_DIR/user.service  /etc/systemd/system/user.service
 # as we are in app directory and needs to move to previous directory to get service file 
-systemctl daemon-reload
+systemctl daemon-reload &>>LOG_FILE
 VALIDATE $? "daemon reloaded"
-systemctl enable user
+
+systemctl enable user &>>LOG_FILE
 VALIDATE $? "enabled user" 
-systemctl start user
+
+systemctl start user &>>LOG_FILE
 VALIDATE $? "started user"
