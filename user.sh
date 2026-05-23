@@ -53,3 +53,11 @@ VALIDATE $? "unzipped"
 cd /app
 npm install 
 VALIDATE $? "nodejs built module is install "
+cp $SCRIPT_DIR/user.service  /etc/systemd/system/user.service
+# as we are in app directory and needs to move to previous directory to get service file 
+systemctl daemon-reload
+VALIDATE $? "daemon reloaded"
+systemctl enable user
+VALIDATE $? "enabled user" 
+systemctl start user
+VALIDATE $? "started user"
