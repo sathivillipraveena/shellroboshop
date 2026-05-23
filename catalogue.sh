@@ -1,94 +1,88 @@
 #!/bin/bash
 
-USER_ID=$(id -u)
-r="\e[31m"   
-g="\e[32m"   
-y="\e[33m" 
-n="\e[0m"  
-
-start_time=$(date +%s) 
-
-LOG_FOLDER=/var/log/shellroboshop   
-
-script_name=$(echo $0 | cut -d "." -f1)
+USERID=$(id -u)
+R="\e[31m"
+G="\e[32m"
+Y="\e[33m"
+N="\e[0m"
+LOGS_FOLDER="/var/log/roboshop-logs"
+SCRIPT_NAME=$(echo $0 | cut -d "." -f1)
+LOG_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
 SCRIPT_DIR=$PWD
 
+mkdir -p $LOGS_FOLDER
+echo "Script started executing at: $(date)" | tee -a $LOG_FILE
 
-log_file="$LOG_FOLDER/$script_name.log"   
-
-mkdir -p $LOG_FOLDER
-
-if [ $USER_ID -ne 0 ]   
+# check the user has root priveleges or not
+if [ $USERID -ne 0 ]
 then
-    echo -e "$r ERROR: user is not super user" | tee -a $log_file
-    exit 1
+    echo -e "$R ERROR:: Please run this script with root access $N" | tee -a $LOG_FILE
+    exit 1 #give other than 0 upto 127
 else
-    echo "You are running with root access" | tee -a $log_file   
+    echo "You are running with root access" | tee -a $LOG_FILE
 fi
 
-validate(){
+# validate functions takes input as exit status, what command they tried to install
+VALIDATE(){
     if [ $1 -eq 0 ]
     then
-        echo -e "$2 is $g successful $n" | tee -a $log_file
+        echo -e "$2 is ... $G SUCCESS $N" | tee -a $LOG_FILE
     else
-        echo -e "$2 is $r failure $n" | tee -a $log_file
+        echo -e "$2 is ... $R FAILURE $N" | tee -a $LOG_FILE
         exit 1
     fi
 }
-dnf module disable nodejs -y &>>$log_file
-validate $? "nodejs disabled"
 
-dnf module enable nodejs:20 -y &>>$log_file
-validate $? "nodejs enabled"
+dnf module disable nodejs -y &>>$LOG_FILE
+VALIDATE $? "Disabling default nodejs"
 
-dnf install nodejs -y &>>$log_file
-validate $? "installed nodejs"
+dnf module enable nodejs:20 -y &>>$LOG_FILE
+VALIDATE $? "Enabling nodejs:20"
+
+dnf install nodejs -y &>>$LOG_FILE
+VALIDATE $? "Installing nodejs:20"
 
 id roboshop
 if [ $? -ne 0 ]
 then
-    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop
-    validate $? "Creating roboshop system user"
+    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
+    VALIDATE $? "Creating roboshop system user"
 else
-    echo -e "roboshop user exist"
+    echo -e "System user roboshop already created ... $Y SKIPPING $N"
 fi
 
 mkdir -p /app 
+VALIDATE $? "Creating app directory"
 
-curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip &>>$log_file
-validate $? "downloading catalouge file"
+curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip &>>$LOG_FILE
+VALIDATE $? "Downloading Catalogue"
 
 rm -rf /app/*
-
 cd /app 
-unzip /tmp/catalogue.zip &>>$log_file
+unzip /tmp/catalogue.zip &>>$LOG_FILE
+VALIDATE $? "unzipping catalogue"
 
-npm install &>>$log_file
-validate $? "nodejs build tool installed"
+npm install &>>$LOG_FILE
+VALIDATE $? "Installing Dependencies"
 
 cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service
-validate $? "copied catalouge service file"
+VALIDATE $? "Copying catalogue service"
 
-systemctl daemon-reload &>>$log_file
-validate $? " daemon reloded"
+systemctl daemon-reload &>>$LOG_FILE
+systemctl enable catalogue  &>>$LOG_FILE
+systemctl start catalogue
+VALIDATE $? "Starting Catalogue"
 
-systemctl enable catalogue &>>$log_file
-validate $? "enabled catalouge"
-
-systemctl start catalogue &>>$log_file
-validate $? "catalouge started"
-
-cp $SCRIPT_DIR/mongo.repo  /etc/yum.repos.d/mongo.repo
-validate $? "mongo.repo is copied"
-
-dnf install mongodb-mongosh -y &>>$log_file
-validate $? "Installing MongoDB Client"
+cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo 
+dnf install mongodb-mongosh -y &>>$LOG_FILE
+VALIDATE $? "Installing MongoDB Client"
 
 STATUS=$(mongosh --host mongodb.daws84s.site --eval 'db.getMongo().getDBNames().indexOf("catalogue")')
 if [ $STATUS -lt 0 ]
 then
-    mongosh --host mongodb.daws84s.site </app/db/master-data.js &>>$log_file
-    validate $? "Loading data into MongoDB"
+    mongosh --host mongodb.daws84s.site </app/db/master-data.js &>>$LOG_FILE
+    VALIDATE $? "Loading data into MongoDB"
 else
-    echo -e "Data is already loaded ... $y skipping $n "
+    echo -e "Data is already loaded ... $Y SKIPPING $N"
 fi
+
