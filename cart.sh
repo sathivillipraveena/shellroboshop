@@ -48,7 +48,7 @@ else
 mkdir -p /app 
 # -p denotes if the directory is present it won't create a new one or else it does 
 curl -L -o /tmp/cart.zip https://roboshop-artifacts.s3.amazonaws.com/cart-v3.zip
-
+rm -rf /app/*
 cd /app 
 unzip /tmp/cart.zip
 VALIDATE $? "cart file is unzipped"
