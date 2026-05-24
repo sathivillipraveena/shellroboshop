@@ -33,15 +33,7 @@ VALIDATE(){
     fi
 }
 
-dnf module disable nodejs -y &>>$LOG_FILE
-VALIDATE $? "Disabling default nodejs"
-
-dnf module enable nodejs:20 -y &>>$LOG_FILE
-VALIDATE $? "Enabling nodejs:20"
-
-dnf install nodejs -y &>>$LOG_FILE
-VALIDATE $? "Installing nodejs:20"
-
+dnf install maven -y
 id roboshop
 if [ $? -ne 0 ]
 then
@@ -53,8 +45,7 @@ fi
 
 mkdir -p /app 
 VALIDATE $? "Creating app directory"
-
-curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip &>>$LOG_FILE
+curl -L -o /tmp/shipping.zip https://roboshop-artifacts.s3.amazonaws.com/shipping-v3.zip &>>$LOG_FILE
 VALIDATE $? "Downloading Catalogue"
 
 rm -rf /app/*
@@ -62,29 +53,39 @@ cd /app
 unzip /tmp/catalogue.zip &>>$LOG_FILE
 VALIDATE $? "unzipping catalogue"
 
-npm install &>>$LOG_FILE
-VALIDATE $? "Installing Dependencies"
+mvn clean package 
+VALIDATE $? "mvn build tool"
+mv target/shipping-1.0.jar shipping.jar 
+VALIDATE $? "Moving and renaming Jar file"
 
-cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service
-VALIDATE $? "Copying catalogue service"
+cp $SCRIPT_DIR/shipping.service /etc/systemd/system/shipping.service
 
 systemctl daemon-reload &>>$LOG_FILE
-systemctl enable catalogue  &>>$LOG_FILE
-systemctl start catalogue
-VALIDATE $? "Starting Catalogue"
+VALIDATE $? "Daemon Realod"
 
-cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo 
-dnf install mongodb-mongosh -y &>>$LOG_FILE
-VALIDATE $? "Installing MongoDB Client"
+systemctl enable shipping  &>>$LOG_FILE
+VALIDATE $? "Enabling Shipping"
 
-STATUS=$(mongosh --host mongodb.roboticgear.shop --eval 'db.getMongo().getDBNames().indexOf("catalogue")')
-if [ $STATUS -lt 0 ]
+systemctl start shipping &>>$LOG_FILE
+VALIDATE $? "Starting Shipping"
+
+dnf install mysql -y  &>>$LOG_FILE
+VALIDATE $? "Install MySQL"
+
+mysql -h mysql.daws84s.site -u root -p$MYSQL_ROOT_PASSWORD -e 'use cities' &>>$LOG_FILE
+if [ $? -ne 0 ]
 then
-    mongosh --host mongodb.roboticgear.shop </app/db/master-data.js &>>$LOG_FILE
-    VALIDATE $? "Loading data into MongoDB"
+    mysql -h mysql.daws84s.site -uroot -p$MYSQL_ROOT_PASSWORD < /app/db/schema.sql &>>$LOG_FILE
+    mysql -h mysql.daws84s.site -uroot -p$MYSQL_ROOT_PASSWORD < /app/db/app-user.sql  &>>$LOG_FILE
+    mysql -h mysql.daws84s.site -uroot -p$MYSQL_ROOT_PASSWORD < /app/db/master-data.sql &>>$LOG_FILE
+    VALIDATE $? "Loading data into MySQL"
 else
-    echo -e "Data is already loaded ... $Y SKIPPING $N"
+    echo -e "Data is already loaded into MySQL ... $Y SKIPPING $N"
 fi
+
+systemctl restart shipping &>>$LOG_FILE
+VALIDATE $? "Restart shipping"
+
 END_TIME=$(date +%s)
 TOTAL_TIME=$(( $END_TIME - $START_TIME ))
 
