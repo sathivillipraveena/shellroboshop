@@ -45,6 +45,7 @@ then
     VALIDATE $? "user roboshop is created"
 else
     echo -e " user already exist"
+fi
 mkdir -p /app 
 # -p denotes if the directory is present it won't create a new one or else it does 
 curl -L -o /tmp/cart.zip https://roboshop-artifacts.s3.amazonaws.com/cart-v3.zip
@@ -65,3 +66,7 @@ systemctl enable cart &>>$LOG_FILE
 VALIDATE $? "enabled cart"
 systemctl start cart &>>$LOG_FILE
 VALIDATE $? "started cart"
+END_TIME=$(date +%s)
+TOTAL_TIME=$(( $END_TIME - $START_TIME ))
+
+echo -e "Script exection completed successfully, $Y time taken: $TOTAL_TIME seconds $N" | tee -a $LOG_FILE
