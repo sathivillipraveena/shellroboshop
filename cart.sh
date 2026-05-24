@@ -32,11 +32,11 @@ VALIDATE(){
         exit 1
     fi
 }
-dnf module disable nodejs -y
+dnf module disable nodejs -y &>>$LOG_FILE
 VALIDATE $? "nodejs disabled"
-dnf module enable nodejs:20 -y
+dnf module enable nodejs:20 -y &>>$LOG_FILE
 VALIDATE $? "nodejs enabled"
-dnf install nodejs -y
+dnf install nodejs -y &>>$LOG_FILE
 VALIDATE $? "nodejs installed"
 id roboshop
 if [ $? -ne 0 ]
@@ -53,15 +53,15 @@ cd /app
 unzip /tmp/cart.zip
 VALIDATE $? "cart file is unzipped"
 
-npm install 
+npm install &>>$LOG_FILE
 VALIDATE $? "build tool installation"
 
 cp $SCRIPT_DIR/cart.service /etc/systemd/system/cart.service
 VALIDATE $? "service file is loaded"
 
-systemctl daemon-reload
+systemctl daemon-reload &>>$LOG_FILE
 VALIDATE $? "daemon reloaded"
-systemctl enable cart 
+systemctl enable cart &>>$LOG_FILE
 VALIDATE $? "enabled cart"
-systemctl start cart
+systemctl start cart &>>$LOG_FILE
 VALIDATE $? "started cart"
