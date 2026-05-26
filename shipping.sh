@@ -14,6 +14,9 @@ SCRIPT_DIR=$PWD
 mkdir -p $LOGS_FOLDER
 echo "Script started executing at: $(date)" | tee -a $LOG_FILE
 
+echo "Please enter root password to setup"
+read -s MYSQL_ROOT_PASSWORD
+
 # Check root privileges
 if [ $USERID -ne 0 ]
 then
