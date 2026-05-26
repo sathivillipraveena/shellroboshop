@@ -23,9 +23,6 @@ else
     echo "You are running with root access" | tee -a $LOG_FILE
 fi
 
-echo "Please enter rabbitmq password to setup"
-read -s RABBITMQ_PASSWD
-
 # validate functions takes input as exit status, what command they tried to install
 VALIDATE(){
     if [ $1 -eq 0 ]
@@ -37,20 +34,43 @@ VALIDATE(){
     fi
 }
 
-cp rabbitmq.repo /etc/yum.repos.d/rabbitmq.repo
-VALIDATE $? "Adding rabbitmq repo"
+dnf install python3 gcc python3-devel -y &>>$LOG_FILE
+VALIDATE $? "Install Python3 packages"
 
-dnf install rabbitmq-server -y &>>$LOG_FILE
-VALIDATE $? "Installing rabbitmq server"
+id roboshop &>>$LOG_FILE
+if [ $? -ne 0 ]
+then
+    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
+    VALIDATE $? "Creating roboshop system user"
+else
+    echo -e "System user roboshop already created ... $Y SKIPPING $N"
+fi
 
-systemctl enable rabbitmq-server &>>$LOG_FILE
-VALIDATE $? "Enabling rabbitmq server"
+mkdir -p /app 
+VALIDATE $? "Creating app directory"
 
-systemctl start rabbitmq-server &>>$LOG_FILE
-VALIDATE $? "Starting rabbitmq server"
+curl -o /tmp/payment.zip https://roboshop-artifacts.s3.amazonaws.com/payment-v3.zip &>>$LOG_FILE
+VALIDATE $? "Downloading payment"
 
-rabbitmqctl add_user roboshop $RABBITMQ_PASSWD &>>$LOG_FILE
-rabbitmqctl set_permissions -p / roboshop ".*" ".*" ".*" &>>$LOG_FILE
+rm -rf /app/*
+cd /app 
+unzip /tmp/payment.zip &>>$LOG_FILE
+VALIDATE $? "unzipping payment"
+
+pip3 install -r requirements.txt &>>$LOG_FILE
+VALIDATE $? "Installing dependencies"
+
+cp $SCRIPT_DIR/payment.service /etc/systemd/system/payment.service &>>$LOG_FILE
+VALIDATE $? "Copying payment service"
+
+systemctl daemon-reload &>>$LOG_FILE
+VALIDATE $? "Daemon Reload"
+
+systemctl enable payment &>>$LOG_FILE
+VALIDATE $? "Enable payment"
+
+systemctl start payment &>>$LOG_FILE
+VALIDATE $? "Starting payment"
 
 END_TIME=$(date +%s)
 TOTAL_TIME=$(( $END_TIME - $START_TIME ))
